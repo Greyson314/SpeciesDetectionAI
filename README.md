@@ -30,5 +30,5 @@ My project, which I nicknamed “Murmur”, was to create a research tool that w
 
 ### How to: Use this to create your own model
 
-1. You will need to use [murmer.py](scripts/murmur.py) to create the model.
+1. You will need to use [murmer.py](src/murmur.py) to create the model.
 2. Within the head of murmer.py, there are instructions on how to use that file to generate the needed resources
