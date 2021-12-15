@@ -6,9 +6,9 @@ This script is used to generate the model for the project.
 This model is what is used by app.py to make predictions.
 
 It creates a rnn model that takes in a sequence of mfccs and
-predicts if there is a common tern.
+predicts whether there is a common tern.
 
-The inputs are the dataframe.csv file.  To see how dataframe.csv is
+The input is the dataframe.csv file. To see how dataframe.csv is
 generated, see the dataframe_maker.py script.
 """
 # Std lib Imports
@@ -47,60 +47,24 @@ warnings.filterwarnings("ignore")
 df = pd.read_csv("dataframe.csv")
 print(df.head())
 
-USE_CACHE = True
-USE_MODEL_CACHE = False
-epoch_count = 12000  # current best is 50-250
-batch_size = 256  # current best is 255
-learning_rate = 0.001
-decay_rate = 0
-make_plot = True
+USE_CACHE = False #Set to TRUE if you would like to skip preprocessing. Only works after having been run with set to FALSE at least once.
+USE_MODEL_CACHE = False #Set to TRUE if you would like to skip the modelling step and use your previously cached model. Only works after having been run with set to FALSE at least once.
 
-hop_length = 512  # the default spacing between frames
-n_fft = 2048  # number of samples, 2048
-n_mfcc = 13
-pad_length = 840000
+#MODEL PARAMETERS:
+epoch_count = 12000  # current best is >10,000, takes about 30 minutes
+batch_size = 256  # current best is 256
+learning_rate = 0.001 # current best is 0.001
+decay_rate = 0 # Mess with it if you want to but it sucks
+make_plot = True # Leave as true 
 
-
-def padding_2(array, xx, yy):
-    """
-    :param array: numpy array
-    :param xx: desired height
-    :param yy: desirex width
-    :return: padded array
-    """
-
-    h = array.shape[0]
-    w = array.shape[1]
-
-    print("h: ", h)
-    print("w: ", w)
-
-    a = (xx - h) // 2
-    aa = xx - a - h
-
-    b = (yy - w) // 2
-    bb = yy - b - w
-    return np.pad(array, pad_width=((a, aa), (b, bb)), mode="constant")
+hop_length = 512  # the default spacing between frames, current best is 512
+n_fft = 2048  # number of samples, current best is 2048
+n_mfcc = 13 # Number of MFCC 
+pad_length = 840_000 #Set to your sample rate * your desired file length. 840,000 = 28,000 * 30, for example. 
 
 
-def padding(waveform):
-    if waveform.shape[0] == pad_length:
-        return waveform
-
-    if waveform.shape[0] > pad_length:
-        diff = (waveform.shape[0] - pad_length) // 2
-        waveform = waveform[diff:][: (-1 * diff)]
-        return waveform
-        # get rid of diff number of columns from both sides
-
-    if waveform.shape[0] < pad_length:
-        diff = pad_length - waveform.shape[0]
-        waveform = np.pad(waveform, diff // 2, mode="constant")
-        return waveform
-
-
-def get_features(df_in):
-    bar = Bar("Getting Features", max=673)
+def preprocess(df_in):
+    bar = Bar("Getting Features", max=673) #just a progress bar
     features = []  # list to save features
     labels = []  # list to save labels
     for index in range(0, len(df_in)):
@@ -111,7 +75,7 @@ def get_features(df_in):
         # load the file
         wav_data, sr = librosa.load(filename, sr=28000)
 
-        #if the file is comter, duplicate and add random noise
+        #if the file is a true (i.e. your target species), duplicate and add random noise to help the algorithm learn
         if label == True:
             copy_label = copy(wav_data)
             # add noise here
@@ -119,15 +83,15 @@ def get_features(df_in):
             copy_data = np.array(
                 [
                     padding_2(
-                        librosa.feature.mfcc(
-                            padding(copy_label+noise),
+                        librosa.feature.mfcc( #Fournier transforms your WAV files to be a numerical array of size n_mels (y) by 1641 (x). This is what the NN uses to learn. 
+                            padding(copy_label+noise), #pads your wav file to be 30 seconds
                             n_fft=n_fft,
                             hop_length=hop_length,
                             n_mfcc=n_mfcc,
                             n_mels=128,
                         ),
                         n_mfcc,
-                        1641,
+                        1641, #length of 30s file MFCC. No idea how to calculate it, but it will tell you if you're wrong. 
                     )
                 ]
             )
@@ -135,8 +99,8 @@ def get_features(df_in):
         data = np.array(
             [
                 padding_2(
-                    librosa.feature.mfcc(
-                        padding(wav_data),
+                    librosa.feature.mfcc( #Fournier transforms your WAV files to be a numerical array of size n_mels (y) by 1641 (x). This is what the NN uses to learn. 
+                        padding(wav_data), #pads your wav file to be 30 seconds
                         n_fft=n_fft,
                         hop_length=hop_length,
                         n_mfcc=n_mfcc,
@@ -150,25 +114,59 @@ def get_features(df_in):
         # takes about 12 minutes as of 10/4
         print(data.shape)
         os.system("cls")
-        bar.next()
-        features.append(data)
-        labels.append(label)
+        bar.next() #just progress bar stuff
+        features.append(data) #add our array, which we created from the sound files, to an array of arrays. Hooray!
+        labels.append(label) #assign said array a label--yay or nay. 
         if label == True:
-            features.append(copy_data)
-            labels.append(label)
+            features.append(copy_data) #add the copied noisy data
+            labels.append(label) #label the copied noisy data
     bar.finish()
-    output = np.concatenate(features, axis=0)
+    output = np.concatenate(features, axis=0) #turn the arrays into an NP array for processing
     return (np.array(output), labels)
 
 
-# features,y=get_features(df)
+def padding_2(array, xx, yy): #this is here to pad the Y axis, but I tried getting rid of it's X padding and it broke everything. 
+    """
+    pad the array
+    :param array: numpy array
+    :param xx: desired height
+    :param yy: desirex width
+    :return: padded array
+    """
 
-features, labels = None, None
+    h = array.shape[0]
+    w = array.shape[1]
+
+    a = (xx - h) // 2
+    aa = xx - a - h
+
+    b = (yy - w) // 2
+    bb = yy - b - w
+    return np.pad(array, pad_width=((a, aa), (b, bb)), mode="constant")
+
+
+def padding(waveform): 
+    if waveform.shape[0] == pad_length: #if the length == pad length, return itself
+        return waveform
+
+    if waveform.shape[0] > pad_length: #if it's longer, take the difference, divide it by 2, then chop that off both sides to preserve the middle. 
+        diff = (waveform.shape[0] - pad_length) // 2
+        waveform = waveform[diff:][: (-1 * diff)]
+        return waveform
+        # get rid of diff number of columns from both sides
+
+    if waveform.shape[0] < pad_length: #if it's shorter than the pad_length, pad each side with 0s
+        diff = pad_length - waveform.shape[0]
+        waveform = np.pad(waveform, diff // 2, mode="constant")
+        return waveform
+
+
+features, labels = None, None #this is where the pickling happens. 
 if USE_CACHE:
     with open("Xy.pkl", "rb") as f:
         features, labels = pickle.load(f)
 else:
-    features, labels = get_features(df)
+    features, labels = preprocess(df)
     with open("Xy.pkl", "wb") as f:
         pickle.dump([features, labels], f)
 
@@ -178,7 +176,7 @@ labels = [
 
 # print(labels)
 
-print("Normalizing Data...")
+print("Normalizing Data...") 
 features = np.array(
     (features - np.min(features)) / (np.max(features) - np.min(features))
 )
@@ -186,30 +184,27 @@ features = features / np.std(features)
 labels = np.array(labels)
 
 # Split twice to get the validation set
-print("Splitting Training, Test, and Validation Sets...")
+print("Splitting Training and Test Sets...")
 features_train, features_test, labels_train, labels_test = train_test_split(
     features, labels, test_size=0.25, random_state=231, stratify=labels
 )
-# features_train, features_val, labels_train, labels_val = train_test_split(features_train, labels_train, test_size=0.25, random_state=321) #with val
 
 # Print the shapes
 print("Data Shapes:")
-# print(features_train.shape, features_test.shape, features_val.shape, len(labels_train), len(labels_test), len(labels_val)) #with val
 print(features_train.shape, features_test.shape, len(labels_train), len(labels_test))
 
 print("Creating Model...")
 
 model = None
-if USE_MODEL_CACHE:
+if USE_MODEL_CACHE: #accesses the model cache 
     model = keras.models.load_model("saved_model")
     with open("history.pkl", "rb") as f:
         history_dict = pickle.load(f)
 else:
-    input_shape = (n_mfcc, 1641)
+    input_shape = (n_mfcc, 1641) #128x1641 array being used to train our model. Each array has 128*1641=210,000 features
     model = keras.Sequential()
-    model.add(LSTM(128, input_shape=input_shape, return_sequences=False))
-    # model.add(Dropout(0.2))
-
+    model.add(LSTM(128, input_shape=input_shape, return_sequences=False)) #Uncomment at your leisure, but make sure return_sequences is true for all but the last layer. 
+                                                                            #also only use LSTM layers or dropout layers; and I don't recommend dropouts. 1 layer LSTM rocks btw
     # model.add(LSTM(64, input_shape=input_shape, return_sequences=True))
 
     # model.add(LSTM(32, input_shape=input_shape, return_sequences=True))
@@ -223,7 +218,6 @@ else:
     # model.add(LSTM(128, input_shape=input_shape, return_sequences=False))
 
 
-    # model.add(Dropout(0.2))
     # model.add(LSTM(32, input_shape=input_shape, return_sequences=True))
     # # model.add(Dropout(0.2))
     # model.add(LSTM(16, input_shape=input_shape, return_sequences=True))
@@ -239,22 +233,17 @@ else:
     # model.add(Dropout(0.4))
     # model.add(Dense(264, activation="relu"))
     # model.add(Dropout(0.4))
-    model.add(Dense(1, activation="sigmoid"))
+
+    model.add(Dense(1, activation="sigmoid")) #sigmoid gives us a 1 or 0!
     model.summary()
 
 
     print("Compiling Model...")
-
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=learning_rate,
-    decay_steps=epoch_count,
-    decay_rate=decay_rate)
-
     tf.keras.optimizers.SGD(
-        learning_rate=learning_rate, momentum=0.0, nesterov=False, name="SGD"
+        learning_rate=learning_rate, momentum=0.0, nesterov=False, name="SGD" #setting our optimizer. SGD is the best, but you can also try "adam"
     )
     # tf.keras.optimizers.RMSprop(learning_rate=0.01, rho=0.9, momentum=0.0, epsilon=1e-07, centered=False, name="RMSprop")
-    model.compile(optimizer="SGD", loss="BinaryCrossentropy", metrics=["acc", tf.keras.metrics.FalseNegatives(), tf.keras.metrics.FalsePositives()])
+    model.compile(optimizer="SGD", loss="BinaryCrossentropy", metrics=["acc", tf.keras.metrics.FalseNegatives(), tf.keras.metrics.FalsePositives()]) #compiling model!
 
     print("Fitting the Model...")
     history = model.fit(
@@ -262,7 +251,7 @@ else:
         labels_train,
         epochs=epoch_count,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=True, #shuffles data every epoch. Keep true. 
     )
     model.save("saved_model")
     history_dict = history.history
@@ -277,7 +266,7 @@ fn_values = history_dict["false_negatives"]
 epochs = range(1, epoch_count + 1)
 
 
-if make_plot:
+if make_plot: #just making a gross little plot for the model. Very helpful, don't click the X when it pops up. Click the save button. :)
     print("Creating Plot...")
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 5))
     ax1.plot(epochs, loss_values, "co", label="Training Loss")
@@ -317,7 +306,8 @@ print("Predicting...")
 labels_pred = model.predict(features_test)
 
 # print("Prediction[0]: ", y_pred[0])
-# print('Confusion_matrix: ',tf.math.confusion_matrix(y_test, np.argmax(y_pred,axis=1)))
+# print('Confusion_matrix: ',tf.math.confusion_matrix(y_test, np.argmax(y_pred,axis=1))) #confusion matrix is really annoying for BinaryCrossentropy, just check accuracy
 
 
-# pickle the model, then give it 10 terns and 10 non-terns, and use the model.predict on those files at the end.
+#Now the model is ready to be applied in app.py! If you aren't happy with your model results, feel free to run it again. I recommend setting USE_CACHE to True at this point
+#that will speed it up a lot. 

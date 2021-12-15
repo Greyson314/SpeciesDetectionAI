@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 FIG_SIZE = (15,10)
 
 file_number = "XC25566"
-file_name = 'resources/kaggle_datasets/dataset_2/comter/' + str(file_number) + '.wav'
+file_name = 'trues/' + str(file_number) + '.wav'
 
 # load audio file with Librosa
 signal, sample_rate = librosa.load(file_name, sr=22050)
