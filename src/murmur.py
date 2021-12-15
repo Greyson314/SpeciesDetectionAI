@@ -43,7 +43,7 @@ from sklearn.model_selection import train_test_split
 
 warnings.filterwarnings("ignore")
 
-os.chdir("resources/kaggle_datasets/dataset_2/")
+# os.chdir("resources/kaggle_datasets/dataset_2/")
 df = pd.read_csv("dataframe.csv")
 print(df.head())
 

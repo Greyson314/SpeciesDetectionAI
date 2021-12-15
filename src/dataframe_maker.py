@@ -10,7 +10,7 @@ It can also write a 'short' version for quick testing.
 """
 import os
 
-os.chdir(f"resources/kaggle_datasets/dataset_2/")
+# os.chdir(f"resources/kaggle_datasets/dataset_2/")
 with open("dataframe.csv", "w") as f:
     f.write("id,label\n")
     for i in os.listdir(f"comter/"):

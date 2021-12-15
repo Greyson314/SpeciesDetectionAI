@@ -8,8 +8,6 @@
 </p>
 My project, which I nicknamed “Murmur”, was to create a research tool that would use neural networks, which can read and learn patterns to try and classify an audio file, to analyze any given PAM file and return a list of timestamps where the target species made a vocalization.
 
-
-
 ### How to: Install this project
 
 1. Make sure you have python3.6 or greater installed on you computer
@@ -18,17 +16,15 @@ My project, which I nicknamed “Murmur”, was to create a research tool that w
    2. Windows: `./venv/Source/activate` 
 3. Install [requirements.txt](requirements.txt)
    1. `pip install -r requirements.txt`
+4. Separate your 
 
-### How to: Run this project with passive accustic audio files
+### How to: Run this project with passive acoustic monitoring files
 
-<!-- TODO: where ya gunna host that model?? -->
-1.  Download the model from [here](.) 
-2.  Extract it to this directory, making sure the folder is called, "saved_model".
-3.  Save the bird file to the root directory (like `pam_1.wav`)
-4.  Go into [app.py](app.py) and change line 129 to match your file name
-5.  Run app.py
+1.  Extract saved_model.zip to this directory, making sure the folder is called "saved_model".
+2.  Save the PAM file to the root directory (e.g. `pam_1.wav`)
+3.  Go into [app.py](app.py) and change line 129 to match your file name
+4.  Run app.py
 
 ### How to: Use this to create your own model
 
-1. You will need to use [murmer.py](src/murmur.py) to create the model.
-2. Within the head of murmer.py, there are instructions on how to use that file to generate the needed resources
+1. You will need to use [murmur.py](src/murmur.py) to create the model.
