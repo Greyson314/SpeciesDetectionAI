@@ -128,7 +128,7 @@ def test_frame_maker(pam_file, chunk_seconds = 30, offset_seconds = 20): #splits
 def main():
     global model
     model = keras.models.load_model('saved_model', compile = True) #load our completed Murmur model!
-    pam_file = 'pam_1.wav' #this is your Passive Acoustic Monitoring file. 
+    pam_file = 'pam_1.wav' #this is your Passive Acoustic Monitoring file. Rename it if need be! 
     folder_name = pam_file[:-4]
     # test_file = 25
     os.chdir(f"resources/kaggle_datasets/dataset_2/")
