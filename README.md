@@ -9,8 +9,6 @@
 My project, which I nicknamed “Murmur”, was to create a research tool that would use neural networks, which can read and learn patterns to try and classify an audio file, to analyze any given PAM file and return a list of timestamps where the target species made a vocalization.
 
 
-##### Note from Grey: Please contact me if you feel like you can't grade this project without copious amounts of data. I get it, but also I can't house it all on github. Not sure what to do here. 
-
 ### How to: Install this project and create your model:
 
 1. Make sure you have python3.6 or greater installed on you computer
